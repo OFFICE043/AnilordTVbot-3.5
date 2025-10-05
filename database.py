@@ -34,7 +34,7 @@ async def init_db(retries: int = 5, delay: int = 2):
                     );
                 """)
                 # === Anime kodlari ===
-                await conn.execute("""
+                                await conn.execute("""
                     CREATE TABLE IF NOT EXISTS kino_codes (
                         code TEXT PRIMARY KEY,
                         title TEXT,
@@ -42,6 +42,7 @@ async def init_db(retries: int = 5, delay: int = 2):
                         message_id INTEGER,
                         post_count INTEGER,
                         poster_file_id TEXT,
+                        poster_type TEXT, 
                         caption TEXT,
                         parts_file_ids TEXT
                     );
@@ -118,19 +119,19 @@ async def get_today_users():
         return row[0] if row else 0
 
 
-# === Anime kodlari ===
-async def add_anime(code, title, poster_file_id, parts_file_ids, caption=""):
+# === Anime kodlari ===async def add_anime(code, title, poster_file_id, parts_file_ids, caption="", poster_type="photo"):
     pool = await get_conn()
     async with pool.acquire() as conn:
         await conn.execute("""
-            INSERT INTO kino_codes (code, title, poster_file_id, caption, parts_file_ids, post_count)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO kino_codes (code, title, poster_file_id, caption, parts_file_ids, post_count, poster_type)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (code) DO UPDATE SET
                 title = EXCLUDED.title,
                 poster_file_id = EXCLUDED.poster_file_id,
                 caption = EXCLUDED.caption,
-                parts_file_ids = EXCLUDED.parts_file_ids;
-        """, code, title, poster_file_id, caption, json.dumps(parts_file_ids), len(parts_file_ids))
+                parts_file_ids = EXCLUDED.parts_file_ids,
+                poster_type = EXCLUDED.poster_type;
+        """, code, title, poster_file_id, caption, json.dumps(parts_file_ids), len(parts_file_ids), poster_type)
         await conn.execute("""
             INSERT INTO stats (code) VALUES ($1)
             ON CONFLICT DO NOTHING
@@ -141,7 +142,7 @@ async def get_kino_by_code(code):
     pool = await get_conn()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
-            SELECT code, title, poster_file_id, caption, parts_file_ids,
+            SELECT code, title, poster_file_id, poster_type, caption, parts_file_ids,
                    post_count, channel, message_id
             FROM kino_codes
             WHERE code = $1
@@ -157,7 +158,7 @@ async def get_all_codes():
     pool = await get_conn()
     async with pool.acquire() as conn:
         rows = await conn.fetch("""
-            SELECT code, title, poster_file_id, caption, parts_file_ids,
+            SELECT code, title, poster_file_id, poster_type, caption, parts_file_ids,
                    post_count, channel, message_id
             FROM kino_codes
         """)
