@@ -34,19 +34,15 @@ from database import (
 )
 
 # === YUKLAMALAR ===
-load_dotenv()
+# load_dotenv() # Бұл қатарды алып тастаймыз немесе комментарийге аламыз
 keep_alive()
 
-API_TOKEN = os.getenv("API_TOKEN")
+API_TOKEN = "8133859055:AAG2ey3BELYfrPoI9AdedEuCzmltQiP8hE4"  # <-- ОСЫ ЖЕРГЕ BOTFATHER БЕРГЕН ТОКЕНДІ ҚОЙЫҢЫЗ
 CHANNELS = []
 LINKS = []
 MAIN_CHANNELS = []
 MAIN_LINKS = []
-BOT_USERNAME = os.getenv("BOT_USERNAME")
-
-bot = Bot(token=API_TOKEN)
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
+BOT_USERNAME = "anilordtvbot" # <-- ОСЫ ЖЕРГЕ БОТТЫҢ USERNAME-ІН @ БЕЛГІСІНСІЗ ЖАЗЫҢЫЗ
 
 START_ADMINS = [7483732504, 5959511392]  # dastlabki adminlar
 ADMINS = set(START_ADMINS)
@@ -1020,10 +1016,11 @@ async def download_all(callback: types.CallbackQuery):
     for idx, file_id in enumerate(parts_file_ids, start=1):
         try:
             caption = f"{title} [{idx}-qism]"
-            await bot.send_document(
+                        await bot.send_document(
                 chat_id=callback.from_user.id,
                 document=file_id,
-                caption=caption
+                caption=caption,
+                protect_content=True  # <-- ОСЫ ЖОЛ БАРЛЫҚ МӘСЕЛЕНІ ШЕШЕДІ
             )
             await asyncio.sleep(0.1)  # flood control
         except Exception as e:
