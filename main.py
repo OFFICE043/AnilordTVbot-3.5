@@ -751,19 +751,24 @@ async def anime_title_handler(message: types.Message, state: FSMContext):
 @dp.message_handler(content_types=["photo", "video", "document"], state=AddAnimeStates.waiting_for_poster)
 async def anime_poster_handler(message: types.Message, state: FSMContext):
     file_id = None
+    poster_type = None  # <-- МЫНА ЖОЛ ҚОСЫЛДЫ
+
     if message.photo:
         file_id = message.photo[-1].file_id
+        poster_type = "photo"  # <-- МЫНА ЖОЛ ҚОСЫЛДЫ (ТҮРІН АНЫҚТАЙДЫ)
     elif message.video:
         file_id = message.video.file_id
+        poster_type = "video"  # <-- МЫНА ЖОЛ ҚОСЫЛДЫ (ТҮРІН АНЫҚТАЙДЫ)
     elif message.document:
         file_id = message.document.file_id
+        poster_type = "document" # <-- МЫНА ЖОЛ ҚОСЫЛДЫ (ТҮРІН АНЫҚТАЙДЫ)
 
     caption = message.caption if message.caption else ""
-    await state.update_data(poster_file_id=file_id, caption=caption, parts_file_ids=[])
+    # poster_type деген айнымалыны да қосып сақтаймыз
+    await state.update_data(poster_file_id=file_id, poster_type=poster_type, caption=caption, parts_file_ids=[])
 
     await message.answer("📥 Endi qismlarni yuboring (video/file).Tugatgach /done buyrug'ini yuboring.")
     await AddAnimeStates.waiting_for_parts.set()
-
 
 @dp.message_handler(content_types=["video", "document"], state=AddAnimeStates.waiting_for_parts)
 async def anime_parts_handler(message: types.Message, state: FSMContext):
@@ -782,10 +787,12 @@ async def anime_done_handler(message: types.Message, state: FSMContext):
     code = data["code"]
     title = data["title"]
     poster_file_id = data["poster_file_id"]
+    poster_type = data["poster_type"] # <-- МЫНА ЖОЛ ҚОСЫЛДЫ (САҚТАЛҒАН ТҮРІН АЛАДЫ)
     caption = data["caption"]
     parts_file_ids = data["parts_file_ids"]
 
-    await add_anime(code, title, poster_file_id, parts_file_ids, caption)
+    # add_anime функциясына poster_type-ты қосып жібереміз
+    await add_anime(code, title, poster_file_id, parts_file_ids, caption, poster_type)
 
     await message.answer(
         f"✅ Anime saqlandi!\n\n"
@@ -834,20 +841,26 @@ async def send_post_by_code(message: types.Message, state: FSMContext):
         )
     )
 
-    successful, failed = 0, 0
+        successful, failed = 0, 0
     for ch in MAIN_CHANNELS:
         try:
-            # Poster faylini yuborish
-            if kino['poster_file_id']:
-                if kino.get('caption'):
-                    await bot.send_photo(ch, kino['poster_file_id'], caption=kino['caption'], reply_markup=download_btn)
-                else:
-                    await bot.send_photo(ch, kino['poster_file_id'], reply_markup=download_btn)
-            # Agar poster video yoki document bo‘lsa
-            elif kino['poster_file_id']:
-                await bot.send_document(ch, kino['poster_file_id'], caption=kino.get('caption', ''), reply_markup=download_btn)
+            poster_id = kino.get('poster_file_id')
+            # Базадан постердің сақталған түрін аламыз
+            poster_type = kino.get('poster_type', 'photo') 
+            caption = kino.get('caption', '')
 
-            successful += 1
+            if poster_id:
+                # Түріне қарай дұрыс команданы таңдаймыз
+                if poster_type == 'video':
+                    await bot.send_video(ch, poster_id, caption=caption, reply_markup=download_btn)
+                elif poster_type == 'document':
+                    await bot.send_document(ch, poster_id, caption=caption, reply_markup=download_btn)
+                else: # Егер фото болса немесе түрі белгісіз болса
+                    await bot.send_photo(ch, poster_id, caption=caption, reply_markup=download_btn)
+                
+                successful += 1
+            else:
+                failed += 1
         except Exception as e:
             print(f"Xato: {e}")
             failed += 1
@@ -982,7 +995,9 @@ async def send_reklama_post(user_id, code):
         await bot.send_message(user_id, "❌ Kod topilmadi.")
         return
 
-    poster_file_id = data["poster_file_id"]
+    poster_file_id = data.get("poster_file_id")
+    # Базадан постердің сақталған түрін аламыз
+    poster_type = data.get("poster_type", "photo")
     caption = data.get("caption", "")
     
     # Inline tugma
@@ -992,13 +1007,18 @@ async def send_reklama_post(user_id, code):
 
     try:
         if poster_file_id:
-            await bot.send_photo(user_id, poster_file_id, caption=caption, reply_markup=keyboard)
+            # Түріне қарай дұрыс команданы таңдаймыз
+            if poster_type == "video":
+                await bot.send_video(user_id, poster_file_id, caption=caption, reply_markup=keyboard)
+            elif poster_type == "document":
+                await bot.send_document(user_id, poster_file_id, caption=caption, reply_markup=keyboard)
+            else: # Егер фото болса немесе түрі белгісіз болса
+                await bot.send_photo(user_id, poster_file_id, caption=caption, reply_markup=keyboard)
         else:
-            # Agar poster yo'q bo'lsa, oddiy matn
             await bot.send_message(user_id, caption or "Anime tayyor!", reply_markup=keyboard)
-    except:
+    except Exception as e:
+        print(f"Reklama postni yuborishda xatolik: {e}")
         await bot.send_message(user_id, "❌ Reklama postni yuborib bo‘lmadi.")
-
 
 # === Yuklab olish tugmasi bosilganda ===
 @dp.callback_query_handler(lambda c: c.data.startswith("download:"))
