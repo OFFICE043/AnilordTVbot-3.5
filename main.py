@@ -34,15 +34,16 @@ from database import (
 )
 
 # === YUKLAMALAR ===
-load_dotenv()
+# load_dotenv() # Бұл жолды өшіріп тастауға болады, себебі .env қолданбаймыз
 keep_alive()
 
-API_TOKEN = os.getenv("API_TOKEN")
+API_TOKEN = "8133859055:AAG2ey3BELYfrPoI9AdedEuCzmltQiP8hE4" # <-- @BotFather берген токенді осы жерге қойыңыз
 CHANNELS = []
 LINKS = []
 MAIN_CHANNELS = []
 MAIN_LINKS = []
-BOT_USERNAME = os.getenv("BOT_USERNAME")
+BOT_USERNAME = "anilordtvbot" # <-- Мысалы: "MySuperBot" (басында @ белгісі жоқ)
+
 
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
