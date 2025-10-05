@@ -1014,7 +1014,7 @@ async def download_all(callback: types.CallbackQuery):
     if not parts_file_ids:
         await callback.message.answer("❌ Hech qanday qism topilmadi.")
         return
-# ...
+
     await callback.answer("⏳ Yuklanmoqda, biroz kuting...")
 
     for idx, file_id in enumerate(parts_file_ids, start=1):
@@ -1022,7 +1022,26 @@ async def download_all(callback: types.CallbackQuery):
             caption = f"{title} [{idx}-qism]"
             
             # Пайдаланушының админ екенін тексереміз
-            if callback.from_user.id not in ADMINS
+            if callback.from_user.id not in ADMINS: # <-- : БЕЛГІСІ ҚОСЫЛДЫ
+                # Егер админ болмаса, контентті қорғаймыз
+                await bot.send_document(
+                    chat_id=callback.from_user.id,
+                    document=file_id,
+                    caption=caption,
+                    protect_content=True
+                )
+            else:
+                # Егер админ болса, қорғаусыз жібереміз
+                await bot.send_document(
+                    chat_id=callback.from_user.id,
+                    document=file_id,
+                    caption=caption
+                )
+                
+            await asyncio.sleep(0.1)
+        except Exception as e:
+            print(f"Xatolik yuborishda {file_id}: {e}")
+
                 # Егер админ болмаса, контентті қорғаймыз
                 await bot.send_document(
                     chat_id=callback.from_user.id,
