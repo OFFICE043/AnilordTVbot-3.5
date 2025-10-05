@@ -9,7 +9,6 @@ load_dotenv()
 
 db_pool: asyncpg.pool.Pool | None = None
 
-
 # === Pool yaratish / qayta ulanish ===
 async def init_db(retries: int = 5, delay: int = 2):
     """
@@ -20,10 +19,11 @@ async def init_db(retries: int = 5, delay: int = 2):
     for i in range(retries):
         try:
             db_pool = await asyncpg.create_pool(
-                dsn=os.getenv("DATABASE_URL"),
-                ssl="require",
-                statement_cache_size=0
-            )
+    host="localhost",
+    database="anilordtv",
+    user="postgres",
+    password="postgres"
+                (
             async with db_pool.acquire() as conn:
                 # === Foydalanuvchilar ===
                 await conn.execute("""
