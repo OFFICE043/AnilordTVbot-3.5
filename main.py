@@ -1,4 +1,3 @@
-
 # === IMPORTLAR ===
 import io
 import os
@@ -89,7 +88,7 @@ class AdminStates(StatesGroup):
     waiting_for_stat_code = State()
     waiting_for_broadcast_data = State()
     waiting_for_admin_id = State()
-    waiting_for_remove_id = State()   # ✅ qo‘shish kerak
+    waiting_for_remove_id = State()
 
 class AdminReplyStates(StatesGroup):
     waiting_for_reply_message = State()
@@ -111,13 +110,13 @@ class PostStates(StatesGroup):
     waiting_for_image = State()
     waiting_for_title = State()
     waiting_for_link = State()
-    waiting_for_button_text = State() 
+    waiting_for_button_text = State()
     waiting_for_code = State()
-    
+
 class KanalStates(StatesGroup):
     waiting_for_channel_id = State()
     waiting_for_channel_link = State()
-# === HOLATLAR ===
+
 class AddAnimeStates(StatesGroup):
     waiting_for_code = State()
     waiting_for_title = State()
@@ -152,7 +151,6 @@ async def make_unsubscribed_markup(user_id, code):
         except Exception as e:
             print(f"❗ Kanal tugmasini yaratishda xatolik: {channel_id} -> {e}")
 
-    # Tekshirish tugmasi
     markup.add(InlineKeyboardButton("✅ Tekshirish", callback_data=f"checksub:{code}"))
     return markup
 
@@ -223,7 +221,6 @@ async def show_all_animes(message: types.Message):
 
     kodlar = sorted(kodlar, key=lambda x: int(x["code"]))
 
-    # 100 tadan bo‘lib yuborish
     chunk_size = 100
     for i in range(0, len(kodlar), chunk_size):
         chunk = kodlar[i:i + chunk_size]
@@ -242,7 +239,6 @@ def cancel_keyboard():
     return kb
 
 
-# === Admin bilan bog‘lanish (foydalanuvchi qismi) ===
 @dp.message_handler(lambda m: m.text == "✉️ Admin bilan bog‘lanish")
 async def contact_admin(message: types.Message):
     await UserStates.waiting_for_admin_message.set()
@@ -254,7 +250,6 @@ async def contact_admin(message: types.Message):
 
 @dp.message_handler(state=UserStates.waiting_for_admin_message)
 async def forward_to_admins(message: types.Message, state: FSMContext):
-    # Bekor qilish tugmasi bosilganda
     if message.text == "❌ Bekor qilish":
         await state.finish()
         kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -309,7 +304,7 @@ async def send_admin_reply(message: types.Message, state: FSMContext):
         await message.answer(f"❌ Xatolik: {e}")
     finally:
         await state.finish()
-    
+
 # === Kanal boshqaruvi menyusi ===
 @dp.message_handler(lambda m: m.text == "📡 Kanal boshqaruvi", user_id=ADMINS)
 async def kanal_boshqaruvi(message: types.Message):
@@ -353,19 +348,13 @@ async def channel_actions(callback: types.CallbackQuery, state: FSMContext):
         await callback.answer("❗ Avval kanal turini tanlang.")
         return
 
-    # ➕ Kanal qo‘shish
     if action == "add":
         await KanalStates.waiting_for_channel_id.set()
         await callback.message.answer("🆔 Kanal ID yuboring (masalan: -1001234567890):")
 
-    # 📋 Kanal ro‘yxati
     elif action == "list":
-        if ctype == "sub":
-            channels = list(zip(CHANNELS, LINKS))
-            title = "📋 Majburiy obuna kanallari:\n\n"
-        else:
-            channels = list(zip(MAIN_CHANNELS, MAIN_LINKS))
-            title = "📌 Asosiy kanallar:\n\n"
+        channels = list(zip(CHANNELS, LINKS)) if ctype == "sub" else list(zip(MAIN_CHANNELS, MAIN_LINKS))
+        title = "📋 Majburiy obuna kanallari:\n\n" if ctype == "sub" else "📌 Asosiy kanallar:\n\n"
 
         if not channels:
             await callback.message.answer("📭 Hali kanal yo‘q.")
@@ -375,25 +364,19 @@ async def channel_actions(callback: types.CallbackQuery, state: FSMContext):
             )
             await callback.message.answer(text)
 
-    # ❌ Kanal o‘chirish
     elif action == "delete":
-        if ctype == "sub":
-            channels = list(zip(CHANNELS, LINKS))
-            prefix = "del_sub"
-        else:
-            channels = list(zip(MAIN_CHANNELS, MAIN_LINKS))
-            prefix = "del_main"
+        channels = CHANNELS if ctype == "sub" else MAIN_CHANNELS
+        prefix = "del_sub" if ctype == "sub" else "del_main"
 
         if not channels:
             await callback.message.answer("📭 Hali kanal yo‘q.")
             return
 
         kb = InlineKeyboardMarkup()
-        for cid, link in channels:
+        for cid in channels:
             kb.add(InlineKeyboardButton(f"O‘chirish: {cid}", callback_data=f"{prefix}:{cid}"))
         await callback.message.answer("❌ Qaysi kanalni o‘chirmoqchisiz?", reply_markup=kb)
 
-    # ⬅️ Orqaga
     elif action == "back":
         await kanal_boshqaruvi(callback.message)
 
@@ -445,46 +428,36 @@ async def add_channel_finish(message: types.Message, state: FSMContext):
 # === Kanalni o‘chirish ===
 @dp.callback_query_handler(lambda c: c.data.startswith("del_"), user_id=ADMINS)
 async def delete_channel(callback: types.CallbackQuery):
-    action, cid = callback.data.split(":")
-    cid = int(cid)
+    action, cid_str = callback.data.split(":")
+    cid = int(cid_str)
 
-    if action == "del_sub":
-        if cid in CHANNELS:
-            idx = CHANNELS.index(cid)
-            CHANNELS.pop(idx)
-            LINKS.pop(idx)
-            await callback.message.answer(f"❌ Kanal o‘chirildi!\n🆔 {cid}")
-    elif action == "del_main":
-        if cid in MAIN_CHANNELS:
-            idx = MAIN_CHANNELS.index(cid)
-            MAIN_CHANNELS.pop(idx)
-            MAIN_LINKS.pop(idx)
-            await callback.message.answer(f"❌ Asosiy kanal o‘chirildi!\n🆔 {cid}")
+    if action == "del_sub" and cid in CHANNELS:
+        idx = CHANNELS.index(cid)
+        CHANNELS.pop(idx)
+        LINKS.pop(idx)
+        await callback.message.edit_text(f"❌ Kanal o‘chirildi!\n🆔 {cid}")
+    elif action == "del_main" and cid in MAIN_CHANNELS:
+        idx = MAIN_CHANNELS.index(cid)
+        MAIN_CHANNELS.pop(idx)
+        MAIN_LINKS.pop(idx)
+        await callback.message.edit_text(f"❌ Asosiy kanal o‘chirildi!\n🆔 {cid}")
+    else:
+        await callback.message.edit_text("❌ Kanal topilmadi.")
 
     await callback.answer("O‘chirildi ✅")
-    
+
 # === 👥 Adminlar menyusi ===
-@dp.message_handler(lambda m: m.text == "👥 Adminlar")
+@dp.message_handler(lambda m: m.text == "👥 Adminlar", user_id=ADMINS)
 async def open_admins_menu(message: types.Message):
-    if message.from_user.id not in START_ADMINS:
-        return  # ❌ RAMda yangi qo‘shilgan adminlar kira olmaydi
-    
     await message.answer("👥 Adminlarni boshqarish menyusi:", reply_markup=admin_menu_keyboard())
 
-@dp.message_handler(lambda m: m.text == "➕ Admin qo‘shish")
+@dp.message_handler(lambda m: m.text == "➕ Admin qo‘shish", user_id=ADMINS)
 async def start_add_admin(message: types.Message):
-    if message.from_user.id not in ADMINS:
-        return
     await message.answer("Yangi adminning Telegram ID raqamini yuboring:", reply_markup=control_keyboard())
     await AdminStates.waiting_for_admin_id.set()
 
-@dp.message_handler(state=AdminStates.waiting_for_admin_id)
+@dp.message_handler(state=AdminStates.waiting_for_admin_id, user_id=ADMINS)
 async def add_admin_process(message: types.Message, state: FSMContext):
-    if message.from_user.id not in ADMINS:
-        await message.answer("Sizda bu huquq yo'q.")
-        await state.finish()
-        return
-
     text = message.text.strip()
     if text == "📡 Boshqarish" or text == "⬅️ Ortga":
         await state.finish()
@@ -496,13 +469,9 @@ async def add_admin_process(message: types.Message, state: FSMContext):
         return
 
     new_admin_id = int(text)
-    if new_admin_id in ADMINS:
-        await message.answer("ℹ️ Bu foydalanuvchi allaqachon admin.", reply_markup=admin_keyboard())
-        await state.finish()
-        return
-
+    await add_admin(new_admin_id)
     ADMINS.add(new_admin_id)
-    await message.answer(f"✅ <code>{new_admin_id}</code> admin sifatida qo‘shildi.", parse_mode="HTML", reply_markup=control_keyboard())
+    await message.answer(f"✅ `{new_admin_id}` admin sifatida qo‘shildi.", parse_mode="HTML", reply_markup=admin_keyboard())
     try:
         await bot.send_message(new_admin_id, "✅ Siz botga admin sifatida qo‘shildingiz.")
     except:
@@ -510,16 +479,15 @@ async def add_admin_process(message: types.Message, state: FSMContext):
     await state.finish()
 
 # === Adminlar ro‘yxatini ko‘rsatish ===
-@dp.message_handler(lambda m: m.text == "👥 Adminlar ro‘yxati")
+@dp.message_handler(lambda m: m.text == "👥 Adminlar ro‘yxati", user_id=ADMINS)
 async def show_admins(message: types.Message):
-    if message.from_user.id not in ADMINS:
-        return  # ❌ oddiy foydalanuvchi ishlata olmaydi
-
+    db_admins = await get_all_admins()
+    ADMINS.update(db_admins)
     if not ADMINS:
         await message.answer("ℹ️ Hozircha adminlar yo‘q.")
         return
 
-    admins_list = "\n".join([f"• <code>{a}</code>" for a in sorted(ADMINS)])
+    admins_list = "\n".join([f"• `{a}`" for a in sorted(ADMINS)])
     await message.answer(
         f"👥 Hozirgi adminlar:\n\n{admins_list}",
         parse_mode="HTML",
@@ -527,91 +495,69 @@ async def show_admins(message: types.Message):
 
 
 # === Admin o‘chirish ===
-@dp.message_handler(lambda m: m.text == "➖ Admin o‘chirish")
+@dp.message_handler(lambda m: m.text == "➖ Admin o‘chirish", user_id=ADMINS)
 async def start_remove_admin(message: types.Message):
-    if message.from_user.id not in ADMINS:
-        return
     await message.answer("O'chirish uchun admin ID raqamini yuboring:", reply_markup=control_keyboard())
     await AdminStates.waiting_for_remove_id.set()
 
-@dp.message_handler(state=AdminStates.waiting_for_remove_id)
+@dp.message_handler(state=AdminStates.waiting_for_remove_id, user_id=ADMINS)
 async def remove_admin_process(message: types.Message, state: FSMContext):
-    if message.from_user.id not in ADMINS:
-        await message.answer("Sizda bu huquq yo'q.")
-        await state.finish()
-        return
-
     text = message.text.strip()
     if text == "📡 Boshqarish" or text == "⬅️ Ortga":
         await state.finish()
         await send_admin_panel(message)
-        return  # ✅ faqat shart bajarilsa qaytadi
+        return
 
     if not text.isdigit():
         await message.answer("❗ Faqat raqam yuboring (Telegram user ID).", reply_markup=control_keyboard())
-        await state.finish()
         return
 
     remove_id = int(text)
-    if remove_id not in ADMINS:
-        await message.answer("ℹ️ Bu ID ro‘yxatda yo‘q.", reply_markup=control_keyboard())
-    else:
+    await remove_admin(remove_id)
+    if remove_id in ADMINS:
         ADMINS.remove(remove_id)
-        await message.answer(
-            f"✅ <code>{remove_id}</code> admin ro‘yxatidan o‘chirildi.",
-            parse_mode="HTML",
-            reply_markup=control_keyboard()  # ✅ tugma ham qo'shildi
-        )
+    await message.answer(
+        f"✅ `{remove_id}` admin ro‘yxatidan o‘chirildi.",
+        parse_mode="HTML",
+        reply_markup=admin_keyboard()
+    )
     await state.finish()
 
-# === ⬅️ Ortga tugmasi ===
-@dp.message_handler(lambda m: m.text == "⬅️ Ortga")
-async def back_to_admin_panel(message: types.Message, state: FSMContext):
-    if message.from_user.id not in ADMINS:
-        return  # ❌ oddiy foydalanuvchi kira olmaydi
 
-    await state.finish()  # agar orada state ochilgan bo‘lsa yopiladi
-    await send_admin_panel(message)  # qaytib admin panelni chiqaradi
+# === ⬅️ Ortga tugmasi ===
+@dp.message_handler(lambda m: m.text == "⬅️ Ortga", user_id=ADMINS)
+async def back_to_admin_panel(message: types.Message, state: FSMContext):
+    await state.finish()
+    await send_admin_panel(message)
 
 
 # === Kod statistikasi ===
-@dp.message_handler(lambda m: m.text == "📈 Kod statistikasi" and m.from_user.id in ADMINS)
+@dp.message_handler(lambda m: m.text == "📈 Kod statistikasi", user_id=ADMINS)
 async def ask_stat_code(message: types.Message):
     await AdminStates.waiting_for_stat_code.set()
     await message.answer("📥 Kod raqamini yuboring:", reply_markup=control_keyboard())
 
 
-@dp.message_handler(state=AdminStates.waiting_for_stat_code)
+@dp.message_handler(state=AdminStates.waiting_for_stat_code, user_id=ADMINS)
 async def show_code_stat(message: types.Message, state: FSMContext):
-    if message.text == "📡 Boshqarish":
+    text = message.text.strip()
+    if text == "📡 Boshqarish":
         await state.finish()
         await send_admin_panel(message)
         return
-    if message.text == "📡 Boshqarish":
-            await state.finish()
-            await send_admin_panel(message)
-            return
-    code = message.text.strip()
-    if not code:
-        await message.answer("❗ Kod yuboring.", reply_markup=control_keyboard())
-        return
 
-    stat = await get_code_stat(code)
-    await state.finish()  # faqat oxirida tugatamiz
-
+    stat = await get_code_stat(text)
     if not stat:
-        await message.answer("❗ Bunday kod statistikasi topilmadi.", reply_markup=control_keyboard())
-        await send_admin_panel(message)
-        return
-
-    await message.answer(
-        f"📊 <b>{code} statistikasi:</b>\n"
-        f"🔍 Qidirilgan: <b>{stat['searched']}</b>\n",
-        parse_mode="HTML"
-    )
-
-    # Statistikani ko‘rsatib bo‘lgach, admin panel qaytadi
-    await send_admin_panel(message)
+        await message.answer("❗ Bunday kod statistikasi topilmadi.", reply_markup=admin_keyboard())
+    else:
+        await message.answer(
+            f"📊 <b>{text} statistikasi:</b>\n"
+            f"🔍 Qidirilgan: <b>{stat['searched']}</b>\n"
+            f"🎞 Ko'rilgan: <b>{stat['viewed']}</b>",
+            parse_mode="HTML",
+            reply_markup=admin_keyboard()
+        )
+    await state.finish()
 
 
 # === Kodni tahrirlash (ANIME) ===
@@ -620,12 +566,11 @@ async def edit_anime_start(message: types.Message):
     await EditAnimeStates.waiting_for_code.set()
     await message.answer(
         "📝 Qaysi anime KODini tahrirlamoqchisiz?",
-        reply_markup=control_keyboard()   # 🔹 Boshqarish tugmasi chiqadi
+        reply_markup=control_keyboard()
     )
 
 @dp.message_handler(state=EditAnimeStates.waiting_for_code, user_id=ADMINS)
 async def edit_anime_code(message: types.Message, state: FSMContext):
-    # 🔹 Agar admin "📡 Boshqarish" tugmasini bossa
     if message.text == "📡 Boshqarish":
         await state.finish()
         await send_admin_panel(message)
@@ -634,10 +579,7 @@ async def edit_anime_code(message: types.Message, state: FSMContext):
     code = message.text.strip()
     anime = await get_kino_by_code(code)
     if not anime:
-        await message.answer(
-            "❌ Bunday kod topilmadi.",
-            reply_markup=control_keyboard()
-        )
+        await message.answer("❌ Bunday kod topilmadi.", reply_markup=control_keyboard())
         return
 
     await state.update_data(code=code)
@@ -648,12 +590,12 @@ async def edit_anime_code(message: types.Message, state: FSMContext):
     )
 
 # === Nomi tahrirlash ===
-@dp.message_handler(lambda m: m.text.startswith("1️⃣"), state=EditAnimeStates.menu)
-async def edit_title_start(message: types.Message, state: FSMContext):
+@dp.message_handler(lambda m: m.text.startswith("1️⃣"), state=EditAnimeStates.menu, user_id=ADMINS)
+async def edit_title_start(message: types.Message):
     await EditAnimeStates.waiting_for_new_title.set()
-    await message.answer("📝 Yangi nomni kiriting:")
+    await message.answer("📝 Yangi nomni kiriting:", reply_markup=control_keyboard())
 
-@dp.message_handler(state=EditAnimeStates.waiting_for_new_title)
+@dp.message_handler(state=EditAnimeStates.waiting_for_new_title, user_id=ADMINS)
 async def edit_title_finish(message: types.Message, state: FSMContext):
     data = await state.get_data()
     await update_anime_code(data["code"], data["code"], message.text.strip())
@@ -661,35 +603,41 @@ async def edit_title_finish(message: types.Message, state: FSMContext):
     await state.finish()
 
 # === Qism qo‘shish ===
-@dp.message_handler(lambda m: m.text.startswith("2️⃣"), state=EditAnimeStates.menu)
-async def add_part_start(message: types.Message, state: FSMContext):
+@dp.message_handler(lambda m: m.text.startswith("2️⃣"), state=EditAnimeStates.menu, user_id=ADMINS)
+async def add_part_start(message: types.Message):
     await EditAnimeStates.waiting_for_new_part.set()
-    await message.answer("🎞 Yangi qismni (video/document) yuboring:")
+    await message.answer("🎞 Yangi qismni (video/document) yuboring:", reply_markup=control_keyboard())
 
-@dp.message_handler(content_types=["video","document"], state=EditAnimeStates.waiting_for_new_part)
+@dp.message_handler(content_types=["video", "document"], state=EditAnimeStates.waiting_for_new_part, user_id=ADMINS)
 async def add_part_finish(message: types.Message, state: FSMContext):
     data = await state.get_data()
     file_id = message.video.file_id if message.video else message.document.file_id
-    await add_part_to_anime(data["code"], file_id)  # <== bu funksiyani database.py da yozish kerak
+    await add_part_to_anime(data["code"], file_id)
     await message.answer("✅ Qism qo‘shildi.", reply_markup=admin_keyboard())
     await state.finish()
 
 # === Qismni o‘chirish ===
-@dp.message_handler(lambda m: m.text.startswith("3️⃣"), state=EditAnimeStates.menu)
-async def delete_part_start(message: types.Message, state: FSMContext):
+@dp.message_handler(lambda m: m.text.startswith("3️⃣"), state=EditAnimeStates.menu, user_id=ADMINS)
+async def delete_part_start(message: types.Message):
     await EditAnimeStates.waiting_for_part_delete.set()
-    await message.answer("❌ O‘chirmoqchi bo‘lgan qism raqamini kiriting:")
+    await message.answer("❌ O‘chirmoqchi bo‘lgan qism raqamini kiriting:", reply_markup=control_keyboard())
 
-@dp.message_handler(state=EditAnimeStates.waiting_for_part_delete)
+@dp.message_handler(state=EditAnimeStates.waiting_for_part_delete, user_id=ADMINS)
 async def delete_part_finish(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    part_number = int(message.text.strip())
-    await delete_part_from_anime(data["code"], part_number)  # <== database.py ga qo‘shiladi
-    await message.answer("✅ Qism o‘chirildi.", reply_markup=admin_keyboard())
+    if not message.text.isdigit():
+        await message.answer("❌ Faqat raqam kiriting.", reply_markup=control_keyboard())
+        return
+    part_number = int(message.text)
+    success = await delete_part_from_anime(data["code"], part_number)
+    if success:
+        await message.answer("✅ Qism o‘chirildi.", reply_markup=admin_keyboard())
+    else:
+        await message.answer("❌ Qism topilmadi yoki xatolik yuz berdi.", reply_markup=admin_keyboard())
     await state.finish()
 
 # === Ortga ===
-@dp.message_handler(lambda m: m.text.startswith("4️⃣"), state=EditAnimeStates.menu)
+@dp.message_handler(lambda m: m.text.startswith("4️⃣"), state=EditAnimeStates.menu, user_id=ADMINS)
 async def go_back(message: types.Message, state: FSMContext):
     await state.finish()
     await send_admin_panel(message)
@@ -700,116 +648,90 @@ async def ask_delete_code(message: types.Message):
     await AdminStates.waiting_for_delete_code.set()
     await message.answer("🗑 Qaysi kodni o‘chirmoqchisiz? Kodni yuboring.", reply_markup=control_keyboard())
 
-@dp.message_handler(state=AdminStates.waiting_for_delete_code)
+@dp.message_handler(state=AdminStates.waiting_for_delete_code, user_id=ADMINS)
 async def delete_code_handler(message: types.Message, state: FSMContext):
     if message.text == "📡 Boshqarish":
         await state.finish()
         await send_admin_panel(message)
         return
 
-    await state.finish()
     code = message.text.strip()
-    if not code.isdigit():
-        await message.answer("❗ Noto‘g‘ri format. Kod raqamini yuboring.", reply_markup=control_keyboard())
-        return
     deleted = await delete_kino_code(code)
     if deleted:
         await message.answer(f"✅ Kod {code} o‘chirildi.", reply_markup=admin_keyboard())
     else:
         await message.answer("❌ Kod topilmadi yoki o‘chirib bo‘lmadi.", reply_markup=admin_keyboard())
+    await state.finish()
 
 # === ➕ Anime qo‘shish ===
-@dp.message_handler(lambda m: m.text == "➕ Anime qo‘shish")
-async def start_add_anime(message: types.Message, state: FSMContext):
-    if message.from_user.id not in ADMINS:   # 🔥 faqat shu joyda tekshir
-        return
-    await message.answer("📝Yangi anime uchun ko'dni kiriting:",
-                        reply_markup=control_keyboard()
-        )
+@dp.message_handler(lambda m: m.text == "➕ Anime qo‘shish", user_id=ADMINS)
+async def start_add_anime(message: types.Message):
+    await message.answer("📝Yangi anime uchun ko'dni kiriting:", reply_markup=control_keyboard())
     await AddAnimeStates.waiting_for_code.set()
-    if message.text == "📡 Boshqarish":
-        await state.finish()
-        await send_admin_panel(message)
-        return
 
-@dp.message_handler(state=AddAnimeStates.waiting_for_code)
+@dp.message_handler(state=AddAnimeStates.waiting_for_code, user_id=ADMINS)
 async def anime_code_handler(message: types.Message, state: FSMContext):
-    await state.update_data(code=message.text.strip())
-    await message.answer("📝 Endi nime nomini kiriting:")
-    await AddAnimeStates.waiting_for_title.set()
     if message.text == "📡 Boshqarish":
         await state.finish()
         await send_admin_panel(message)
         return
+    await state.update_data(code=message.text.strip())
+    await message.answer("📝 Endi anime nomini kiriting:")
+    await AddAnimeStates.waiting_for_title.set()
 
-@dp.message_handler(state=AddAnimeStates.waiting_for_title)
+@dp.message_handler(state=AddAnimeStates.waiting_for_title, user_id=ADMINS)
 async def anime_title_handler(message: types.Message, state: FSMContext):
+    if message.text == "📡 Boshqarish":
+        await state.finish()
+        await send_admin_panel(message)
+        return
     await state.update_data(title=message.text.strip())
     await message.answer("📸 Reklama postini yuboring (Rasm matni bilan bo‘lishi mumkin):")
     await AddAnimeStates.waiting_for_poster.set()
 
-
-@dp.message_handler(content_types=["photo", "video", "document"], state=AddAnimeStates.waiting_for_poster)
+@dp.message_handler(content_types=["photo", "video", "document"], state=AddAnimeStates.waiting_for_poster, user_id=ADMINS)
 async def anime_poster_handler(message: types.Message, state: FSMContext):
     file_id = None
-    if message.photo:
-        file_id = message.photo[-1].file_id
-    elif message.video:
-        file_id = message.video.file_id
-    elif message.document:
-        file_id = message.document.file_id
+    if message.photo: file_id = message.photo[-1].file_id
+    elif message.video: file_id = message.video.file_id
+    elif message.document: file_id = message.document.file_id
 
-    caption = message.caption if message.caption else ""
+    caption = message.caption or ""
     await state.update_data(poster_file_id=file_id, caption=caption, parts_file_ids=[])
 
-    await message.answer("📥 Endi qismlarni yuboring (video/file).Tugatgach /done buyrug'ini yuboring.")
+    await message.answer("📥 Endi qismlarni yuboring (video/file). Tugatgach /done buyrug'ini yuboring.")
     await AddAnimeStates.waiting_for_parts.set()
 
-
-@dp.message_handler(content_types=["video", "document"], state=AddAnimeStates.waiting_for_parts)
+@dp.message_handler(content_types=["video", "document"], state=AddAnimeStates.waiting_for_parts, user_id=ADMINS)
 async def anime_parts_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
     parts = data.get("parts_file_ids", [])
-
     file_id = message.video.file_id if message.video else message.document.file_id
     parts.append(file_id)
-
     await state.update_data(parts_file_ids=parts)
     await message.answer(f"✅ Qism qo‘shildi. Hozircha {len(parts)} ta qism saqlandi.")
 
-@dp.message_handler(lambda m: m.text.lower() == "/done", state=AddAnimeStates.waiting_for_parts)
+@dp.message_handler(commands=['done'], state=AddAnimeStates.waiting_for_parts, user_id=ADMINS)
 async def anime_done_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    code = data["code"]
-    title = data["title"]
-    poster_file_id = data["poster_file_id"]
-    caption = data["caption"]
-    parts_file_ids = data["parts_file_ids"]
-
-    await add_anime(code, title, poster_file_id, parts_file_ids, caption)
-
+    await add_anime(data["code"], data["title"], data["poster_file_id"], data["parts_file_ids"], data["caption"])
     await message.answer(
         f"✅ Anime saqlandi!\n\n"
-        f"📌 <b>Kod: {code}</b>\n"
-        f"📖 <b>Nomi: {title}</b>\n"
-        f"📸 Reklama post caption: {caption}\n"
-        f"🎞 Qismlar soni: {len(parts_file_ids)}",
+        f"📌 <b>Kod: {data['code']}</b>\n"
+        f"📖 <b>Nomi: {data['title']}</b>\n"
+        f"📸 Reklama post caption: {data.get('caption', 'yo`q')}\n"
+        f"🎞 Qismlar soni: {len(data['parts_file_ids'])}",
         reply_markup=admin_keyboard()
     )
     await state.finish()
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
 # === ➤ Post qilish (Endi bazaga mos) ===
-@dp.message_handler(lambda m: m.text == "📤 Post qilish" and m.from_user.id in ADMINS)
+@dp.message_handler(lambda m: m.text == "📤 Post qilish", user_id=ADMINS)
 async def start_post_process(message: types.Message):
     await PostStates.waiting_for_code.set()
-    await message.answer(
-        "🔢 Qaysi anime ko'dini kanalga yubormoqchisiz?\nMasalan: `147`",
-        reply_markup=control_keyboard()
-    )
+    await message.answer("🔢 Qaysi anime ko'dini kanalga yubormoqchisiz?\nMasalan: `147`", reply_markup=control_keyboard())
 
-@dp.message_handler(state=PostStates.waiting_for_code)
+@dp.message_handler(state=PostStates.waiting_for_code, user_id=ADMINS)
 async def send_post_by_code(message: types.Message, state: FSMContext):
     if message.text == "📡 Boshqarish":
         await state.finish()
@@ -817,51 +739,34 @@ async def send_post_by_code(message: types.Message, state: FSMContext):
         return
 
     code = message.text.strip()
-    if not code.isdigit():
-        await message.answer("❌ Kod faqat raqamlardan iborat bo‘lishi kerak.", reply_markup=control_keyboard())
-        return
-
-    # ✅ Bazadan anime ma'lumotini olish
     kino = await get_kino_by_code(code)
     if not kino:
         await message.answer("😕 Natija mavjud emas.", reply_markup=control_keyboard())
         return
 
-    # 🔘 Yuklab olish tugmasini yaratish
     download_btn = InlineKeyboardMarkup().add(
-        InlineKeyboardButton(
-            "✨Yuklab olish✨",
-            url=f"https://t.me/{BOT_USERNAME}?start={code}"
-        )
+        InlineKeyboardButton("✨Yuklab olish✨", url=f"https://t.me/{BOT_USERNAME}?start={code}")
     )
 
     successful, failed = 0, 0
     for ch in MAIN_CHANNELS:
         try:
-            # Poster faylini yuborish
             if kino['poster_file_id']:
-                if kino.get('caption'):
-                    await bot.send_photo(ch, kino['poster_file_id'], caption=kino['caption'], reply_markup=download_btn)
+                if 'video' in kino['poster_file_id'].lower() or 'document' in kino['poster_file_id'].lower():
+                     await bot.send_document(ch, kino['poster_file_id'], caption=kino.get('caption', ''), reply_markup=download_btn)
                 else:
-                    await bot.send_photo(ch, kino['poster_file_id'], reply_markup=download_btn)
-            # Agar poster video yoki document bo‘lsa
-            elif kino['poster_file_id']:
-                await bot.send_document(ch, kino['poster_file_id'], caption=kino.get('caption', ''), reply_markup=download_btn)
-
+                     await bot.send_photo(ch, kino['poster_file_id'], caption=kino.get('caption', ''), reply_markup=download_btn)
             successful += 1
         except Exception as e:
             print(f"Xato: {e}")
             failed += 1
 
-    await message.answer(
-        f"✅ Post yuborildi.\n\n✅ Muvaffaqiyatli: {successful}\n❌ Xatolik: {failed}",
-        reply_markup=admin_keyboard()
-    )
+    await message.answer(f"✅ Post yuborildi.\n\n✅ Muvaffaqiyatli: {successful}\n❌ Xatolik: {failed}", reply_markup=admin_keyboard())
     await state.finish()
 
 # === Kodlar ro'yxati ===
-@dp.message_handler(lambda m: m.text == "📄 Kodlar ro‘yxati")
-async def show_all_animes(message: types.Message):
+@dp.message_handler(lambda m: m.text == "📄 Kodlar ro‘yxati", user_id=ADMINS)
+async def show_all_animes_admin(message: types.Message):
     kodlar = await get_all_codes()
     if not kodlar:
         await message.answer("Ba'zada hech qanday kodlar yo'q!")
@@ -877,63 +782,49 @@ async def show_all_animes(message: types.Message):
 
 
 # === Statistika ===
-@dp.message_handler(lambda m: m.text == "📊 Statistika")
+@dp.message_handler(lambda m: m.text == "📊 Statistika", user_id=ADMINS)
 async def stats(message: types.Message):
-    from database import db_pool
-    async with db_pool.acquire() as conn:
-        start = time.perf_counter()
-        await conn.fetch("SELECT 1;")
-        ping = (time.perf_counter() - start) * 1000
+    start = time.perf_counter()
+    await init_db()
+    ping = (time.perf_counter() - start) * 1000
     kodlar = await get_all_codes()
     foydalanuvchilar = await get_user_count()
     today_users = await get_today_users()
-    text = (
-        f"💡 O'rtacha yuklanish: {ping:.2f} ms\n\n"
-        f"👥 Foydalanuvchilar: {foydalanuvchilar} ta\n\n"
-        f"📂 Barcha yuklangan animelar: {len(kodlar)} ta\n\n"
-        f"📅 Bugun qo'shilgan foydalanuvchilar: {today_users} ta"
-    )
+    text = (f"💡 O'rtacha yuklanish: {ping:.2f} ms\n\n"
+            f"👥 Foydalanuvchilar: {foydalanuvchilar} ta\n\n"
+            f"📂 Barcha yuklangan animelar: {len(kodlar)} ta\n\n"
+            f"📅 Bugun qo'shilgan foydalanuvchilar: {today_users} ta")
     await message.answer(text, reply_markup=admin_keyboard())
 
 
 # === Orqaga tugmasi ===
-@dp.message_handler(lambda m: m.text == "⬅️ Orqaga", user_id=ADMINS)
-async def back_to_admin_menu(message: types.Message):
+@dp.message_handler(lambda m: m.text == "⬅️ Ortga", user_id=ADMINS)
+async def back_to_admin_menu(message: types.Message, state: FSMContext):
+    await state.finish()
     await send_admin_panel(message)
 
 # === Habar yuborish ===
 @dp.message_handler(lambda m: m.text == "📢 Habar yuborish", user_id=ADMINS)
 async def ask_broadcast_info(message: types.Message):
     await AdminStates.waiting_for_broadcast_data.set()
-    await message.answer(
-        "📨yubormoqchi bolgan postingizni id raqamini kiriting. Habar yuborish uchun format:\n`@kanal xabar_id`",
-        parse_mode="Markdown",
-        reply_markup=control_keyboard()
-    )
+    await message.answer("📨 Yubormoqchi bo'lgan postingizni ID raqamini kiriting. Format:\n`@kanal xabar_id`", parse_mode="Markdown", reply_markup=control_keyboard())
 
-
-@dp.message_handler(state=AdminStates.waiting_for_broadcast_data)
+@dp.message_handler(state=AdminStates.waiting_for_broadcast_data, user_id=ADMINS)
 async def send_forward_only(message: types.Message, state: FSMContext):
     if message.text == "📡 Boshqarish":
         await state.finish()
         await send_admin_panel(message)
         return
 
-    parts = message.text.strip().split()
-    if len(parts) != 2:
+    try:
+        channel_username, msg_id = message.text.split()
+        msg_id = int(msg_id)
+    except (ValueError, TypeError):
         await message.answer("❗ Format noto‘g‘ri. Masalan: `@kanalim 123`", reply_markup=control_keyboard())
         return
 
-    channel_username, msg_id = parts
-    if not msg_id.isdigit():
-        await message.answer("❗ Xabar ID raqam bo‘lishi kerak.", reply_markup=control_keyboard())
-        return
-
-    msg_id = int(msg_id)
     users = await get_all_user_ids()
-    success = 0
-    fail = 0
-
+    success, fail = 0, 0
     for index, user_id in enumerate(users, start=1):
         try:
             await bot.forward_message(user_id, channel_username, msg_id)
@@ -941,21 +832,10 @@ async def send_forward_only(message: types.Message, state: FSMContext):
         except Exception as e:
             print(f"Xatolik {user_id} uchun: {e}")
             fail += 1
+        if index % 20 == 0: await asyncio.sleep(1)
 
-        # Har 20 ta yuborilganda 1 sekund kutish
-        if index % 20 == 0:
-            await asyncio.sleep(1.5)
-
-    # Shu yerda state tugatiladi
     await state.finish()
-
-    await message.answer(
-        f"✅ Yuborildi: {success} ta\n❌ Xatolik: {fail} ta",
-        reply_markup=admin_keyboard()
-    )
-
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import asyncio
+    await message.answer(f"✅ Yuborildi: {success} ta\n❌ Xatolik: {fail} ta", reply_markup=admin_keyboard())
 
 # === Kodni qidirish (raqam) ===
 @dp.message_handler(lambda message: message.text.isdigit())
@@ -964,10 +844,7 @@ async def handle_code_message(message: types.Message):
     unsubscribed = await get_unsubscribed_channels(message.from_user.id)
     if unsubscribed:
         markup = await make_unsubscribed_markup(message.from_user.id, code)
-        await message.answer(
-            "❗ Anime olishdan oldin quyidagi kanal(lar)ga obuna bo‘ling:",
-            reply_markup=markup
-        )
+        await message.answer("❗ Anime olishdan oldin quyidagi kanal(lar)ga obuna bo‘ling:", reply_markup=markup)
         return
 
     await increment_stat(code, "init")
@@ -985,22 +862,17 @@ async def send_reklama_post(user_id, code):
 
     poster_file_id = data["poster_file_id"]
     caption = data.get("caption", "")
-    
-    # Inline tugma
-    keyboard = InlineKeyboardMarkup().add(
-        InlineKeyboardButton("✨Tomosha qilish✨", callback_data=f"download:{code}")
-    )
+    keyboard = InlineKeyboardMarkup().add(InlineKeyboardButton("✨Tomosha qilish✨", callback_data=f"download:{code}"))
 
     try:
         if poster_file_id:
             await bot.send_photo(user_id, poster_file_id, caption=caption, reply_markup=keyboard, protect_content=False)
         else:
-            # Agar poster yo'q bo'lsa, oddiy matn
             await bot.send_message(user_id, caption or "Anime tayyor!", reply_markup=keyboard, protect_content=False)
-    except:
-        await bot.send_message(user_id, "❌ Reklama postni yuborib bo‘lmadi.")
+    except Exception as e:
+        await bot.send_message(user_id, f"❌ Reklama postni yuborib bo‘lmadi. Xatolik: {e}")
 
-    # === Yuklab olish tugmasi bosilganda ===
+# === Yuklab olish tugmasi bosilganda ===
 @dp.callback_query_handler(lambda c: c.data.startswith("download:"))
 async def download_all(callback: types.CallbackQuery):
     code = callback.data.split(":")[1]
@@ -1020,32 +892,22 @@ async def download_all(callback: types.CallbackQuery):
     for idx, file_id in enumerate(parts_file_ids, start=1):
         try:
             caption = f"{title} [{idx}-qism]"
-            
-            # Пайдаланушының админ екенін тексереміз
             if callback.from_user.id not in ADMINS:
-                # Егер админ болмаса, контентті қорғаймыз
-                await bot.send_document(
-                    chat_id=callback.from_user.id,
-                    document=file_id,
-                    caption=caption,
-                    protect_content=True
-                )
+                await bot.send_document(chat_id=callback.from_user.id, document=file_id, caption=caption, protect_content=True)
             else:
-                # Егер админ болса, қорғаусыз жібереміз
-                await bot.send_document(
-                    chat_id=callback.from_user.id,
-                    document=file_id,
-                    caption=caption
-                )
-                
+                await bot.send_document(chat_id=callback.from_user.id, document=file_id, caption=caption)
             await asyncio.sleep(0.1)
         except Exception as e:
             print(f"Xatolik yuborishda {file_id}: {e}")
 
 # === START ===
 async def on_startup(dp):
+    global ADMINS
+    db_admins = await get_all_admins()
+    ADMINS.update(db_admins)
     await init_db()
     print("✅ PostgreSQL bazaga ulandi!")
+    print("👮‍♂️ Adminlar:", ADMINS)
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=False, on_startup=on_startup)
