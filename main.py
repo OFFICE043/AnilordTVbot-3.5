@@ -1000,7 +1000,7 @@ async def send_reklama_post(user_id, code):
     except:
         await bot.send_message(user_id, "❌ Reklama postni yuborib bo‘lmadi.")
 
-# === Yuklab olish tugmasi bosilganda ===
+    # === Yuklab olish tugmasi bosilganda ===
 @dp.callback_query_handler(lambda c: c.data.startswith("download:"))
 async def download_all(callback: types.CallbackQuery):
     code = callback.data.split(":")[1]
@@ -1022,26 +1022,7 @@ async def download_all(callback: types.CallbackQuery):
             caption = f"{title} [{idx}-qism]"
             
             # Пайдаланушының админ екенін тексереміз
-            if callback.from_user.id not in ADMINS: # <-- : БЕЛГІСІ ҚОСЫЛДЫ
-                # Егер админ болмаса, контентті қорғаймыз
-                await bot.send_document(
-                    chat_id=callback.from_user.id,
-                    document=file_id,
-                    caption=caption,
-                    protect_content=True
-                )
-            else:
-                # Егер админ болса, қорғаусыз жібереміз
-                await bot.send_document(
-                    chat_id=callback.from_user.id,
-                    document=file_id,
-                    caption=caption
-                )
-                
-            await asyncio.sleep(0.1)
-        except Exception as e:
-            print(f"Xatolik yuborishda {file_id}: {e}")
-
+            if callback.from_user.id not in ADMINS:
                 # Егер админ болмаса, контентті қорғаймыз
                 await bot.send_document(
                     chat_id=callback.from_user.id,
