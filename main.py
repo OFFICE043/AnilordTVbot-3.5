@@ -1016,9 +1016,10 @@ async def download_all(callback: types.CallbackQuery):
         await callback.message.answer("❌ Hech qanday qism topilmadi.")
         return
 
+    # ...
     await callback.answer("⏳ Yuklanmoqda, biroz kuting...")
 
-        for idx, file_id in enumerate(parts_file_ids, start=1):
+    for idx, file_id in enumerate(parts_file_ids, start=1):
         try:
             caption = f"{title} [{idx}-qism]"
             
@@ -1029,18 +1030,44 @@ async def download_all(callback: types.CallbackQuery):
                     chat_id=callback.from_user.id,
                     document=file_id,
                     caption=caption,
-                    protect_content=True  # <-- ЕҢ БАСТЫ ӨЗГЕРІС ОСЫ ЖЕРДЕ
+                    protect_content=True
                 )
             else:
-                # Егер админ болса, қорғаусыз жібереміз (басқа каналға жібере алуы үшін)
+                # Егер админ болса, қорғаусыз жібереміз
                 await bot.send_document(
                     chat_id=callback.from_user.id,
                     document=file_id,
                     caption=caption
-                    # Бұл жерде protect_content параметрі жоқ
                 )
                 
-            await asyncio.sleep(0.1)  # flood control
+            await asyncio.sleep(0.1)
+        except Exception as e:
+            print(f"Xatolik yuborishda {file_id}: {e}")
+# ...
+    await callback.answer("⏳ Yuklanmoqda, biroz kuting...")
+
+    for idx, file_id in enumerate(parts_file_ids, start=1):
+        try:
+            caption = f"{title} [{idx}-qism]"
+            
+            # Пайдаланушының админ екенін тексереміз
+            if callback.from_user.id not in ADMINS:
+                # Егер админ болмаса, контентті қорғаймыз
+                await bot.send_document(
+                    chat_id=callback.from_user.id,
+                    document=file_id,
+                    caption=caption,
+                    protect_content=True
+                )
+            else:
+                # Егер админ болса, қорғаусыз жібереміз
+                await bot.send_document(
+                    chat_id=callback.from_user.id,
+                    document=file_id,
+                    caption=caption
+                )
+                
+            await asyncio.sleep(0.1)
         except Exception as e:
             print(f"Xatolik yuborishda {file_id}: {e}")
 
