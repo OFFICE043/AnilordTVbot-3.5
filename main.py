@@ -37,12 +37,12 @@ from database import (
 # load_dotenv() # Бұл жолды өшіріп тастауға болады, себебі .env қолданбаймыз
 keep_alive()
 
-API_TOKEN = "8133859055:AAG2ey3BELYfrPoI9AdedEuCzmltQiP8hE4" # <-- @BotFather берген токенді осы жерге қойыңыз
+API_TOKEN = "your_bot_token" # <-- @BotFather берген токенді осы жерге қойыңыз
 CHANNELS = []
 LINKS = []
 MAIN_CHANNELS = []
 MAIN_LINKS = []
-BOT_USERNAME = "anilordtvbot" # <-- Мысалы: "MySuperBot" (басында @ белгісі жоқ)
+BOT_USERNAME = "your_bot_username" # <-- Мысалы: "MySuperBot" (басында @ белгісі жоқ)
 
 
 bot = Bot(token=API_TOKEN)
