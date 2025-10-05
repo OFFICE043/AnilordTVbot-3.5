@@ -37,12 +37,12 @@ from database import (
 # load_dotenv() # Бұл қатарды алып тастаймыз немесе комментарийге аламыз
 keep_alive()
 
-API_TOKEN = "12345:ABCDE"  # <-- ОСЫ ЖЕРГЕ BOTFATHER БЕРГЕН ТОКЕНДІ ҚОЙЫҢЫЗ
+API_TOKEN = "8133859055:AAG2ey3BELYfrPoI9AdedEuCzmltQiP8hE4"  # <-- ОСЫ ЖЕРГЕ BOTFATHER БЕРГЕН ТОКЕНДІ ҚОЙЫҢЫЗ
 CHANNELS = []
 LINKS = []
 MAIN_CHANNELS = []
 MAIN_LINKS = []
-BOT_USERNAME = "my_bot_username" # <-- ОСЫ ЖЕРГЕ БОТТЫҢ USERNAME-ІН @ БЕЛГІСІНСІЗ ЖАЗЫҢЫЗ
+BOT_USERNAME = "anilordtvbot" # <-- ОСЫ ЖЕРГЕ БОТТЫҢ USERNAME-ІН @ БЕЛГІСІНСІЗ ЖАЗЫҢЫЗ
 
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
