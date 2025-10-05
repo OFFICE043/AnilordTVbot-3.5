@@ -991,7 +991,7 @@ async def send_reklama_post(user_id, code):
         InlineKeyboardButton("✨Tomosha qilish✨", callback_data=f"download:{code}")
     )
 
-        try:
+    try:
         if poster_file_id:
             await bot.send_photo(user_id, poster_file_id, caption=caption, reply_markup=keyboard, protect_content=False)
         else:
