@@ -1020,10 +1020,11 @@ async def download_all(callback: types.CallbackQuery):
     for idx, file_id in enumerate(parts_file_ids, start=1):
         try:
             caption = f"{title} [{idx}-qism]"
-            await bot.send_document(
+                        await bot.send_document(
                 chat_id=callback.from_user.id,
                 document=file_id,
-                caption=caption
+                caption=caption,
+                protect_content=True  # <-- ОСЫ ЖОЛ БАРЛЫҚ МӘСЕЛЕНІ ШЕШЕДІ
             )
             await asyncio.sleep(0.1)  # flood control
         except Exception as e:
