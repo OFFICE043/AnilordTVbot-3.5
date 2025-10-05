@@ -991,15 +991,14 @@ async def send_reklama_post(user_id, code):
         InlineKeyboardButton("✨Tomosha qilish✨", callback_data=f"download:{code}")
     )
 
-    try:
+        try:
         if poster_file_id:
-            await bot.send_photo(user_id, poster_file_id, caption=caption, reply_markup=keyboard)
+            await bot.send_photo(user_id, poster_file_id, caption=caption, reply_markup=keyboard, protect_content=False)
         else:
             # Agar poster yo'q bo'lsa, oddiy matn
-            await bot.send_message(user_id, caption or "Anime tayyor!", reply_markup=keyboard)
+            await bot.send_message(user_id, caption or "Anime tayyor!", reply_markup=keyboard, protect_content=False)
     except:
         await bot.send_message(user_id, "❌ Reklama postni yuborib bo‘lmadi.")
-
 
 # === Yuklab olish tugmasi bosilganda ===
 @dp.callback_query_handler(lambda c: c.data.startswith("download:"))
