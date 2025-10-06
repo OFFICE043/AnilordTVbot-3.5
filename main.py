@@ -44,10 +44,6 @@ MAIN_CHANNELS = []
 MAIN_LINKS = []
 BOT_USERNAME ="anilordtvbot"
 
-bot = Bot(token=API_TOKEN)
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
-
 START_ADMINS = [7483732504, 5959511392]  # dastlabki adminlar
 ADMINS = set(START_ADMINS)
 
