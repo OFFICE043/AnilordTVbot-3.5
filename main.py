@@ -37,12 +37,12 @@ from database import (
 #load_dotenv()
 keep_alive()
 
-API_TOKEN ="API_TOKEN"
+API_TOKEN ="8133859055:AAG2ey3BELYfrPoI9AdedEuCzmltQiP8hE4"
 CHANNELS = []
 LINKS = []
 MAIN_CHANNELS = []
 MAIN_LINKS = []
-BOT_USERNAME ="BOT_USERNAME"
+BOT_USERNAME ="anilordtvbot"
 
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
