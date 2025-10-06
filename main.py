@@ -34,21 +34,21 @@ from database import (
 )
 
 # === YUKLAMALAR ===
-load_dotenv()
+#load_dotenv()
 keep_alive()
 
-API_TOKEN = os.getenv("API_TOKEN")
+API_TOKEN ="API_TOKEN"
 CHANNELS = []
 LINKS = []
 MAIN_CHANNELS = []
 MAIN_LINKS = []
-BOT_USERNAME = os.getenv("BOT_USERNAME")
+BOT_USERNAME ="BOT_USERNAME"
 
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
-START_ADMINS = [6486825926, 7346481297]  # dastlabki adminlar
+START_ADMINS = [7483732504, 5959511392]  # dastlabki adminlar
 ADMINS = set(START_ADMINS)
 
 # === KEYBOARDS ===
