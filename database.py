@@ -61,7 +61,7 @@ async def init_db(retries: int = 5, delay: int = 2):
                     );
                 """)
                 # Dastlabki admin
-                default_admins = [6486825926]
+                default_admins = [7483732504,5959511392]
                 for admin_id in default_admins:
                     await conn.execute(
                         "INSERT INTO admins (user_id) VALUES ($1) ON CONFLICT DO NOTHING",
